@@ -132,8 +132,14 @@ function Invoke-SelfUpdate($cfg) {
 
   try {
     $manifest = Invoke-RestMethod -Uri $cfg.selfUpdate.manifestUrl -Method Get -TimeoutSec 10
-    if (-not $manifest.version -or -not $manifest.downloadUrl -or -not $manifest.sha256) { return "bad-manifest" }
+    if ($manifest -is [string]) {
+      $raw = $manifest.Trim()
+      $idx = $raw.IndexOf('{')
+      if ($idx -gt 0) { $raw = $raw.Substring($idx) }
+      try { $manifest = $raw | ConvertFrom-Json } catch { return "bad-manifest" }
+    }
 
+    if (-not $manifest.version -or -not $manifest.downloadUrl -or -not $manifest.sha256) { return "bad-manifest" }
     if ($manifest.version -eq $state.version) { return "up-to-date" }
 
     $tmp = Join-Path $env:TEMP "host-perf-optimizer-update.ps1"
